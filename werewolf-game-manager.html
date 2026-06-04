@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบจัดการเกมแวร์วูฟ</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif, 'Noto Sans Thai';
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 30px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            border-left: 4px solid #ff6b6b;
+            border-right: 4px solid #4ecdc4;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #ff6b6b, #4ecdc4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            color: #a0a0a0;
+            font-size: 0.95em;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        .card h2 {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            color: #4ecdc4;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #b0b0b0;
+            font-weight: 500;
+            font-size: 0.95em;
+        }
+
+        input[type="text"],
+        select {
+            width: 100%;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #e0e0e0;
+            font-size: 1em;
+            font-family: inherit;
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]:focus,
+        select:focus {
+            outline: none;
+            border-color: #4ecdc4;
+            box-shadow: 0 0 10px rgba(78, 205, 196, 0.3);
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #4ecdc4, #44a08d);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(78, 205, 196, 0.4);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
+            color: #fff;
+            padding: 8px 12px;
+            font-size: 0.9em;
+            width: auto;
+        }
+
+        .btn-danger:hover {
+            box-shadow: 0 5px 20px rgba(255, 107, 107, 0.4);
+        }
+
+        .btn-shield {
+            background: rgba(78, 205, 196, 0.2);
+            border: 1px solid #4ecdc4;
+            color: #4ecdc4;
+            padding: 8px 12px;
+            font-size: 0.9em;
+            width: auto;
+        }
+
+        .btn-shield:hover {
+            background: rgba(78, 205, 196, 0.3);
+        }
+
+        .btn-shield.active {
+            background: linear-gradient(135deg, #4ecdc4, #44a08d);
+            color: #fff;
+        }
+
+        .btn-reset {
+            background: rgba(255, 107, 107, 0.2);
+            border: 1px solid #ff6b6b;
+            color: #ff6b6b;
+            padding: 10px 20px;
+            font-size: 0.9em;
+        }
+
+        .btn-reset:hover {
+            background: rgba(255, 107, 107, 0.3);
+        }
+
+        .stats-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-box {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 3px solid #4ecdc4;
+            text-align: center;
+        }
+
+        .stat-box.wolves {
+            border-left-color: #ff6b6b;
+        }
+
+        .stat-label {
+            color: #a0a0a0;
+            font-size: 0.9em;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #4ecdc4;
+        }
+
+        .stat-box.wolves .stat-value {
+            color: #ff6b6b;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        thead {
+            background: rgba(78, 205, 196, 0.1);
+        }
+
+        th {
+            padding: 15px;
+            text-align: left;
+            color: #4ecdc4;
+            font-weight: 600;
+            border-bottom: 2px solid rgba(78, 205, 196, 0.3);
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        tr:hover {
+            background: rgba(78, 205, 196, 0.05);
+        }
+
+        tr.dead {
+            opacity: 0.6;
+        }
+
+        .role-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .role-villager {
+            background: rgba(100, 150, 200, 0.3);
+            color: #64b3e8;
+        }
+
+        .role-werewolf {
+            background: rgba(255, 107, 107, 0.3);
+            color: #ff6b6b;
+        }
+
+        .role-seer {
+            background: rgba(150, 100, 200, 0.3);
+            color: #b78dcc;
+        }
+
+        .role-doctor {
+            background: rgba(100, 200, 150, 0.3);
+            color: #64d9b5;
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+        }
+
+        .status.alive {
+            color: #64d9b5;
+        }
+
+        .status.dead {
+            color: #888;
+            text-decoration: line-through;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .winner-message {
+            background: rgba(100, 200, 150, 0.15);
+            border: 2px solid #64d9b5;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #64d9b5;
+            animation: pulse 1s infinite;
+        }
+
+        .winner-message.werewolf {
+            background: rgba(255, 107, 107, 0.15);
+            border-color: #ff6b6b;
+            color: #ff6b6b;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.8;
+            }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #a0a0a0;
+        }
+
+        .empty-state-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+
+        .role-select-container {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .role-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .role-option:hover {
+            background: rgba(78, 205, 196, 0.2);
+        }
+
+        .role-option input[type="radio"] {
+            cursor: pointer;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.8em;
+            }
+
+            .main-content {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .card {
+                padding: 15px;
+            }
+
+            th, td {
+                padding: 10px;
+                font-size: 0.9em;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+
+            .btn-danger,
+            .btn-shield {
+                width: 100%;
+            }
+
+            table {
+                font-size: 0.9em;
+            }
+
+            .stats-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🐺 ระบบจัดการเกมแวร์วูฟ 🐺</h1>
+            <p class="subtitle">จัดการเกมแวร์วูฟอย่างมีประสิทธิภาพและสนุกสนาน</p>
+        </header>
+
+        <!-- Status Messages -->
+        <div id="gameStatus"></div>
+
+        <div class="main-content">
+            <!-- Left Column: Add Player -->
+            <div class="card">
+                <h2>➕ เพิ่มผู้เล่น</h2>
+                
+                <div class="form-group">
+                    <label for="playerName">ชื่อผู้เล่น</label>
+                    <input type="text" id="playerName" placeholder="กรอกชื่อผู้เล่น" autocomplete="off">
+                </div>
+
+                <div class="form-group">
+                    <label>เลือกบทบาท</label>
+                    <div class="role-select-container">
+                        <label class="role-option">
+                            <input type="radio" name="playerRole" value="ชาวบ้าน" checked>
+                            👨‍🌾 ชาวบ้าน
+                        </label>
+                        <label class="role-option">
+                            <input type="radio" name="playerRole" value="หมาป่า">
+                            🐺 หมาป่า
+                        </label>
+                        <label class="role-option">
+                            <input type="radio" name="playerRole" value="ผู้หยั่งรู้">
+                            🔮 ผู้หยั่งรู้
+                        </label>
+                        <label class="role-option">
+                            <input type="radio" name="playerRole" value="หมอ">
+                            💊 หมอ
+                        </label>
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn-primary" onclick="addPlayer()">เพิ่มผู้เล่น</button>
+                </div>
+            </div>
+
+            <!-- Right Column: Game Stats -->
+            <div class="card">
+                <h2>📊 สถิติเกม</h2>
+                
+                <div class="stats-container">
+                    <div class="stat-box">
+                        <div class="stat-label">👨‍🌾 ชาวบ้าน</div>
+                        <div class="stat-value" id="villagerCount">0</div>
+                    </div>
+                    <div class="stat-box wolves">
+                        <div class="stat-label">🐺 หมาป่า</div>
+                        <div class="stat-value" id="werewolfCount">0</div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px;">
+                    <label style="color: #a0a0a0; margin-bottom: 10px; display: block;">ทั้งหมด:</label>
+                    <div style="display: flex; gap: 10px; justify-content: space-around;">
+                        <div style="text-align: center;">
+                            <div style="color: #a0a0a0; font-size: 0.9em; margin-bottom: 5px;">ผู้เล่นทั้งหมด</div>
+                            <div style="font-size: 1.8em; font-weight: bold; color: #4ecdc4;" id="totalPlayers">0</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="color: #a0a0a0; font-size: 0.9em; margin-bottom: 5px;">ยังมีชีวิต</div>
+                            <div style="font-size: 1.8em; font-weight: bold; color: #64d9b5;" id="aliveCount">0</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="color: #a0a0a0; font-size: 0.9em; margin-bottom: 5px;">ตายแล้ว</div>
+                            <div style="font-size: 1.8em; font-weight: bold; color: #ff6b6b;" id="deadCount">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="button-group" style="margin-top: 25px;">
+                    <button class="btn-reset" onclick="resetGame()">🔄 รีเซ็ตเกม</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Players Table -->
+        <div class="card">
+            <h2>👥 รายชื่อผู้เล่น</h2>
+            
+            <div id="playersTableContainer"></div>
+        </div>
+    </div>
+
+    <script>
+        let players = [];
+
+        // Add Player
+        function addPlayer() {
+            const nameInput = document.getElementById('playerName');
+            const roleInput = document.querySelector('input[name="playerRole"]:checked');
+            const name = nameInput.value.trim();
+            const role = roleInput.value;
+
+            if (!name) {
+                alert('กรุณากรอกชื่อผู้เล่น');
+                return;
+            }
+
+            if (players.some(p => p.name === name)) {
+                alert('ชื่อผู้เล่นนี้มีอยู่แล้ว');
+                return;
+            }
+
+            players.push({
+                id: Date.now(),
+                name: name,
+                role: role,
+                alive: true,
+                protected: false
+            });
+
+            nameInput.value = '';
+            document.querySelector('input[name="playerRole"]').checked = true;
+            
+            updateUI();
+            nameInput.focus();
+        }
+
+        // Kill Player
+        function killPlayer(id) {
+            const player = players.find(p => p.id === id);
+            if (!player) return;
+
+            if (player.protected) {
+                player.protected = false;
+                alert(`💙 ${player.name} ได้รับการป้องกัน! การ์ดป้องกันถูกใช้ไปแล้ว`);
+            } else {
+                player.alive = false;
+                alert(`💀 ${player.name} ตายแล้ว!`);
+            }
+
+            updateUI();
+        }
+
+        // Toggle Protection
+        function toggleProtection(id) {
+            const player = players.find(p => p.id === id);
+            if (!player) return;
+
+            if (!player.alive) {
+                alert('ไม่สามารถป้องกันผู้เล่นที่ตายแล้ว');
+                return;
+            }
+
+            player.protected = !player.protected;
+            updateUI();
+        }
+
+        // Update UI
+        function updateUI() {
+            renderPlayersTable();
+            updateStats();
+            checkGameStatus();
+        }
+
+        // Render Players Table
+        function renderPlayersTable() {
+            const container = document.getElementById('playersTableContainer');
+
+            if (players.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🎮</div>
+                        <p>ยังไม่มีผู้เล่น กรุณาเพิ่มผู้เล่นเพื่อเริ่มเกม</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = `
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ชื่อผู้เล่น</th>
+                                <th>บทบาท</th>
+                                <th>สถานะ</th>
+                                <th>แอคชั่น</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            players.forEach(player => {
+                const roleClass = {
+                    'ชาวบ้าน': 'role-villager',
+                    'หมาป่า': 'role-werewolf',
+                    'ผู้หยั่งรู้': 'role-seer',
+                    'หมอ': 'role-doctor'
+                }[player.role] || '';
+
+                const statusClass = player.alive ? 'alive' : 'dead';
+                const statusText = player.alive ? '🟢 มีชีวิตอยู่' : '💀 ตายแล้ว';
+                const rowClass = player.alive ? '' : 'dead';
+
+                html += `
+                    <tr class="${rowClass}">
+                        <td style="font-weight: 600;">${player.name}</td>
+                        <td><span class="role-badge ${roleClass}">${getRoleEmoji(player.role)} ${player.role}</span></td>
+                        <td>
+                            <div class="status ${statusClass}">${statusText}</div>
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="btn-danger" onclick="killPlayer(${player.id})" ${!player.alive ? 'disabled' : ''}>
+                                    ☠️ ฆ่า
+                                </button>
+                                <button class="btn-shield ${player.protected ? 'active' : ''}" 
+                                        onclick="toggleProtection(${player.id})"
+                                        ${!player.alive ? 'disabled' : ''}>
+                                    🛡️ ${player.protected ? 'ปิด' : 'เปิด'}
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        // Get Role Emoji
+        function getRoleEmoji(role) {
+            const emojis = {
+                'ชาวบ้าน': '👨‍🌾',
+                'หมาป่า': '🐺',
+                'ผู้หยั่งรู้': '🔮',
+                'หมอ': '💊'
+            };
+            return emojis[role] || '❓';
+        }
+
+        // Update Stats
+        function updateStats() {
+            const villagers = players.filter(p => p.role === 'ชาวบ้าน' && p.alive).length;
+            const werewolves = players.filter(p => p.role === 'หมาป่า' && p.alive).length;
+            const totalPlayers = players.length;
+            const aliveCount = players.filter(p => p.alive).length;
+            const deadCount = players.filter(p => !p.alive).length;
+
+            document.getElementById('villagerCount').textContent = villagers;
+            document.getElementById('werewolfCount').textContent = werewolves;
+            document.getElementById('totalPlayers').textContent = totalPlayers;
+            document.getElementById('aliveCount').textContent = aliveCount;
+            document.getElementById('deadCount').textContent = deadCount;
+        }
+
+        // Check Game Status
+        function checkGameStatus() {
+            const statusContainer = document.getElementById('gameStatus');
+            const villagers = players.filter(p => p.role === 'ชาวบ้าน' && p.alive).length;
+            const werewolves = players.filter(p => p.role === 'หมาป่า' && p.alive).length;
+
+            if (villagers === 0 || (werewolves > 0 && werewolves >= villagers)) {
+                statusContainer.innerHTML = `
+                    <div class="winner-message werewolf">
+                        🐺 ฝั่งหมาป่าชนะ! (หมาป่าค��มหมู่บ้านได้แล้ว)
+                    </div>
+                `;
+            } else if (werewolves === 0 && villagers > 0) {
+                statusContainer.innerHTML = `
+                    <div class="winner-message">
+                        🎉 ฝั่งชาวบ้านชนะ! (หมาป่าตายหมดแล้ว)
+                    </div>
+                `;
+            } else {
+                statusContainer.innerHTML = '';
+            }
+        }
+
+        // Reset Game
+        function resetGame() {
+            if (players.length === 0) {
+                alert('ยังไม่มีผู้เล่นในเกม');
+                return;
+            }
+
+            if (confirm('คุณแน่ใจหรือว่าต้องการรีเซ็ตเกม?')) {
+                players = [];
+                updateUI();
+            }
+        }
+
+        // Allow Enter key to add player
+        document.getElementById('playerName')?.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addPlayer();
+            }
+        });
+
+        // Initialize
+        updateUI();
+    </script>
+</body>
+</html>
