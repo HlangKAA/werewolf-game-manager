@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Werewolf GM Pro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --night-bg: #060b18;
+            --night-card: #111827;
+            --day-bg: #1a0a00;
+            --day-card: #231000;
+            --gold: #f5c842;
+            --gold-dim: #a8882d;
+            --red: #e53e3e;
+            --blue: #3b82f6;
+            --orange: #f97316;
+            --green: #10b981;
+            --muted-text: #64748b;
+            --border: rgba(255,255,255,0.08);
+            --moon: #c8d8f0;
+            --sun: #fcd34d;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background: var(--night-bg);
+            color: #e2e8f0;
+            min-height: 100vh;
+            transition: background 0.6s ease;
+        }
+        body.day-phase { background: var(--day-bg); }
+
+        /* ── STARS ── */
+        .stars { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; transition: opacity 0.6s; }
+        body.day-phase .stars { opacity: 0; }
+        .star { position: absolute; background: white; border-radius: 50%; animation: twinkle var(--dur,3s) ease-in-out infinite; animation-delay: var(--delay,0s); }
+        @keyframes twinkle { 0%,100%{opacity:var(--min-op,.1)} 50%{opacity:var(--max-op,.7)} }
+
+        /* ── HEADER ── */
+        .game-header {
+            position: sticky; top: 0; z-index: 100;
+            background: rgba(6,11,24,0.92); backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border); padding: 12px 16px;
+            transition: background 0.6s;
+        }
+        body.day-phase .game-header { background: rgba(26,10,0,0.92); }
+        .header-inner { display: flex; align-items: center; justify-content: space-between; max-width: 640px; margin: 0 auto; }
+        .game-title { font-family: 'Cinzel Decorative', cursive; font-size: 1rem; color: var(--gold); text-shadow: 0 0 12px rgba(245,200,66,0.4); }
+        .phase-badge { display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.06); border: 1px solid var(--border); border-radius: 30px; padding: 6px 14px; font-size: 0.9rem; font-weight: 600; }
+        .phase-badge.night { color: var(--moon); }
+        .phase-badge.day { color: var(--sun); }
+        .round-label { font-size: 0.75rem; color: var(--muted-text); font-weight: 400; }
+
+        /* ── CONTENT ── */
+        .content { max-width: 640px; margin: 0 auto; padding: 16px; padding-bottom: 90px; }
+
+        /* ── SCREEN SWITCHING ── */
+        .screen { display: none; }
+        .screen.active { display: block; }
+
+        /* ── SETUP SCREEN ── */
+        .setup-title { text-align: center; font-family: 'Cinzel Decorative', cursive; font-size: 1.1rem; color: var(--gold); margin-bottom: 6px; }
+        .setup-sub { text-align: center; font-size: 0.82rem; color: var(--muted-text); margin-bottom: 20px; }
+
+        .setup-panel {
+            background: var(--night-card); border: 1px solid var(--border);
+            border-radius: 16px; padding: 16px; margin-bottom: 14px;
+        }
+        .input-row { display: flex; gap: 8px; margin-bottom: 10px; }
+        input[type="text"] {
+            flex: 1; padding: 11px 14px; border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.12); background: rgba(0,0,0,0.3);
+            color: #fff; font-family: 'Sarabun', sans-serif; font-size: 1rem; outline: none;
+        }
+        input[type="text"]:focus { border-color: var(--gold); }
+        input[type="text"]::placeholder { color: var(--muted-text); }
+
+        .btn {
+            padding: 11px 18px; border: none; border-radius: 10px; cursor: pointer;
+            font-family: 'Sarabun', sans-serif; font-weight: 700; font-size: 0.95rem;
+            transition: all 0.18s; white-space: nowrap;
+        }
+        .btn:active { transform: scale(0.96); }
+        .btn-add { background: var(--green); color: #fff; }
+        .btn-add:hover { background: #0ea371; }
+
+        /* Setup player rows */
+        .setup-player-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+        .setup-player-row {
+            display: flex; align-items: center; gap: 8px;
+            background: var(--night-card); border: 1px solid var(--border);
+            border-radius: 12px; padding: 10px 12px;
+        }
+        .setup-player-name { font-weight: 700; font-size: 1rem; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .setup-role-select {
+            padding: 8px 10px; background: rgba(0,0,0,0.4); color: #e2e8f0;
+            border: 1px solid rgba(255,255,255,0.12); border-radius: 8px;
+            font-family: 'Sarabun', sans-serif; font-size: 0.88rem; outline: none; cursor: pointer;
+            flex-shrink: 0; max-width: 140px;
+        }
+        .setup-btn-delete {
+            background: transparent; border: 1px solid rgba(239,68,68,0.35); color: rgba(239,68,68,0.7);
+            padding: 6px 10px; border-radius: 7px; font-size: 0.78rem; cursor: pointer;
+            font-family: 'Sarabun', sans-serif; transition: all 0.15s; flex-shrink: 0;
+        }
+        .setup-btn-delete:hover { border-color: var(--red); color: var(--red); }
+
+        .btn-start-game {
+            width: 100%; padding: 14px; border: none; border-radius: 12px; cursor: pointer;
+            font-family: 'Sarabun', sans-serif; font-weight: 700; font-size: 1.05rem;
+            background: linear-gradient(135deg, #1e3a5f 0%, #0f2744 100%);
+            color: var(--moon); border: 1px solid rgba(200,216,240,0.2);
+            box-shadow: 0 4px 20px rgba(0,0,50,0.4); transition: all 0.2s;
+        }
+        .btn-start-game:hover { background: linear-gradient(135deg, #254875 0%, #152f52 100%); }
+        .btn-start-game:active { transform: scale(0.98); }
+        .btn-start-game:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+
+        .empty-setup { text-align: center; padding: 30px 16px; color: var(--muted-text); font-size: 0.9rem; }
+        .empty-setup .icon { font-size: 2rem; margin-bottom: 8px; }
+
+        /* ── GAME SCREEN ── */
+        .alive-counter { text-align: center; margin-bottom: 14px; font-size: 0.85rem; color: var(--muted-text); }
+        .alive-counter span { color: var(--green); font-weight: 700; }
+
+        .player-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+
+        .player-card {
+            background: var(--night-card); border-radius: 14px; padding: 14px;
+            border: 1px solid var(--border); border-left: 4px solid var(--green);
+            transition: all 0.25s; position: relative; overflow: hidden;
+        }
+        body.day-phase .player-card { background: var(--day-card); }
+        .player-card::before { content:''; position:absolute; inset:0; opacity:0; transition:opacity 0.3s; pointer-events:none; }
+        .player-card.is-protected { border-left-color: var(--blue); }
+        .player-card.is-protected::before { background: radial-gradient(ellipse at 0% 50%, rgba(59,130,246,0.12) 0%, transparent 70%); opacity:1; }
+        .player-card.is-muted { border-right: 4px solid var(--orange); }
+        .player-card.dead { border-left-color: #2d3748; opacity: 0.45; background: #0a0e18; }
+        body.day-phase .player-card.dead { background: #120700; }
+
+        .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+        .player-name-block { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .player-name { font-size: 1.1rem; font-weight: 700; color: #f1f5f9; }
+        .dead .player-name { text-decoration: line-through; color: var(--muted-text); }
+
+        .tag { font-size: 0.7rem; padding: 3px 9px; border-radius: 20px; font-weight: 600; }
+        .tag-alive { background: rgba(16,185,129,0.15); color: var(--green); border: 1px solid rgba(16,185,129,0.25); }
+        .tag-dead { background: rgba(100,116,139,0.15); color: #64748b; border: 1px solid rgba(100,116,139,0.2); }
+        .tag-muted { background: rgba(249,115,22,0.15); color: var(--orange); border: 1px solid rgba(249,115,22,0.25); }
+        .tag-protected { background: rgba(59,130,246,0.15); color: var(--blue); border: 1px solid rgba(59,130,246,0.25); }
+
+        .role-label {
+            font-size: 0.8rem; color: var(--muted-text); margin-bottom: 10px;
+            padding: 6px 10px; background: rgba(255,255,255,0.04); border-radius: 7px;
+        }
+        .role-label span { color: var(--gold-dim, #a8882d); font-weight: 600; }
+
+        .action-row { display: flex; gap: 6px; }
+        .action-btn {
+            flex: 1; padding: 9px 6px; border-radius: 8px; border: none; cursor: pointer;
+            font-family: 'Sarabun', sans-serif; font-weight: 700; font-size: 0.88rem; transition: all 0.18s;
+        }
+        .action-btn:active { transform: scale(0.95); }
+        .action-btn:disabled { opacity: 0.25; cursor: not-allowed; transform: none; }
+        .btn-kill { background: var(--red); color: #fff; }
+        .btn-kill:hover:not(:disabled) { background: #c53030; }
+        .btn-protect { background: transparent; border: 2px solid var(--blue); color: var(--blue); }
+        .btn-protect.active { background: var(--blue); color: #fff; }
+        .btn-mute { background: transparent; border: 2px solid var(--orange); color: var(--orange); }
+        .btn-mute.active { background: var(--orange); color: #fff; }
+
+        /* ── GAME TOP BAR ── */
+        .game-top-bar { display: flex; gap: 8px; margin-bottom: 16px; }
+        .btn-to-setup {
+            flex: 1; padding: 10px; border: 1px solid rgba(245,200,66,0.25); border-radius: 10px;
+            background: transparent; color: var(--gold-dim, #a8882d); font-family: 'Sarabun', sans-serif;
+            font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: all 0.2s;
+        }
+        .btn-to-setup:hover { border-color: var(--gold); color: var(--gold); }
+
+        /* ── PHASE BAR ── */
+        .phase-bar {
+            position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+            backdrop-filter: blur(16px); border-top: 1px solid var(--border);
+            padding: 12px 16px; background: rgba(6,11,24,0.92); transition: background 0.6s;
+        }
+        body.day-phase .phase-bar { background: rgba(26,10,0,0.92); }
+        .phase-bar-inner { max-width: 640px; margin: 0 auto; }
+        .btn-next-phase {
+            width: 100%; padding: 14px; border: none; border-radius: 12px; cursor: pointer;
+            font-family: 'Sarabun', sans-serif; font-weight: 700; font-size: 1rem;
+            transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .btn-next-phase:active { transform: scale(0.98); }
+        .btn-next-night { background: linear-gradient(135deg, #1e3a5f,#0f2744); color: var(--moon); border: 1px solid rgba(200,216,240,0.2); box-shadow: 0 4px 20px rgba(0,0,50,0.4); }
+        .btn-next-day   { background: linear-gradient(135deg, #7c3a00,#5a2900); color: var(--sun); border: 1px solid rgba(252,211,77,0.2); box-shadow: 0 4px 20px rgba(80,30,0,0.4); }
+
+        /* ── OVERLAY / SHEETS ── */
+        .overlay {
+            position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.82);
+            backdrop-filter: blur(8px); display: flex; align-items: flex-end; justify-content: center;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s;
+        }
+        .overlay.visible { opacity: 1; pointer-events: all; }
+        .sheet {
+            background: #111827; border-radius: 24px 24px 0 0; width: 100%; max-width: 640px;
+            padding: 24px 20px 36px; border-top: 1px solid rgba(255,255,255,0.1);
+            transform: translateY(40px); transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+            max-height: 85vh; overflow-y: auto;
+        }
+        .overlay.visible .sheet { transform: translateY(0); }
+        .sheet-handle { width: 40px; height: 4px; background: rgba(255,255,255,0.2); border-radius: 2px; margin: 0 auto 20px; }
+        .sheet-title { text-align: center; font-family: 'Cinzel Decorative', cursive; font-size: 1rem; color: var(--gold); margin-bottom: 4px; }
+        .sheet-sub { text-align: center; font-size: 0.82rem; color: var(--muted-text); margin-bottom: 20px; }
+
+        /* Summary content */
+        .summary-section { margin-bottom: 18px; }
+        .summary-section-title { font-size: 0.73rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--muted-text); margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+        .event-list { display: flex; flex-direction: column; gap: 8px; }
+        .event-item { display: flex; align-items: center; gap: 12px; padding: 11px 12px; border-radius: 10px; font-size: 0.95rem; }
+        .event-killed { background: rgba(229,62,62,0.1); border: 1px solid rgba(229,62,62,0.2); }
+        .event-muted  { background: rgba(249,115,22,0.1); border: 1px solid rgba(249,115,22,0.2); }
+        .event-icon { font-size: 1.2rem; flex-shrink: 0; }
+        .event-name { font-weight: 700; }
+        .event-desc { font-size: 0.78rem; color: var(--muted-text); }
+        .no-event { text-align: center; padding: 18px; color: var(--muted-text); font-size: 0.88rem; }
+        .survivor-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+        .survivor-chip { background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.2); color: var(--green); padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; }
+
+        /* Sheet buttons */
+        .sheet-footer { display: flex; flex-direction: column; gap: 8px; margin-top: 22px; }
+        .btn-confirm-next {
+            width: 100%; padding: 14px; border: none; border-radius: 12px; cursor: pointer;
+            font-family: 'Sarabun', sans-serif; font-weight: 700; font-size: 1rem; color: var(--moon);
+            background: linear-gradient(135deg,#1e3a5f,#0f2744); border: 1px solid rgba(200,216,240,0.15); transition: all 0.2s;
+        }
+        .btn-confirm-next.to-day { background: linear-gradient(135deg,#7c3a00,#5a2900); color: var(--sun); border-color: rgba(252,211,77,0.15); }
+        .btn-confirm-next:active { transform: scale(0.97); }
+        .btn-sheet-cancel { width:100%; padding:12px; border:1px solid var(--border); border-radius:12px; cursor:pointer; font-family:'Sarabun',sans-serif; font-size:0.9rem; color:var(--muted-text); background:transparent; transition:all 0.2s; }
+        .btn-sheet-cancel:hover { color:#fff; border-color:rgba(255,255,255,0.2); }
+
+        /* Confirm modal */
+        .confirm-modal-overlay {
+            position: fixed; inset: 0; z-index: 300; background: rgba(0,0,0,0.75);
+            backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center;
+            padding: 20px; opacity: 0; pointer-events: none; transition: opacity 0.25s;
+        }
+        .confirm-modal-overlay.visible { opacity: 1; pointer-events: all; }
+        .confirm-modal {
+            background: #1e293b; border: 1px solid rgba(255,255,255,0.1); border-radius: 18px;
+            padding: 28px 24px; width: 100%; max-width: 340px; text-align: center;
+            transform: scale(0.92); transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        .confirm-modal-overlay.visible .confirm-modal { transform: scale(1); }
+        .confirm-modal-icon { font-size: 2.2rem; margin-bottom: 12px; }
+        .confirm-modal-title { font-weight: 700; font-size: 1.05rem; margin-bottom: 8px; }
+        .confirm-modal-body { font-size: 0.85rem; color: var(--muted-text); line-height: 1.6; margin-bottom: 22px; }
+        .confirm-modal-btns { display: flex; gap: 10px; }
+        .confirm-modal-btns button { flex: 1; padding: 12px; border-radius: 10px; border: none; cursor: pointer; font-family: 'Sarabun', sans-serif; font-weight: 700; font-size: 0.95rem; transition: all 0.18s; }
+        .confirm-modal-btns button:active { transform: scale(0.96); }
+        .btn-modal-cancel { background: rgba(255,255,255,0.08); color: #cbd5e1; }
+        .btn-modal-confirm { background: var(--red); color: #fff; }
+        .btn-modal-confirm.gold { background: var(--gold); color: #000; }
+    </style>
+</head>
+<body>
+<div class="stars" id="stars"></div>
+
+<!-- HEADER -->
+<header class="game-header" id="gameHeader">
+    <div class="header-inner">
+        <div class="game-title">Werewolf GM</div>
+        <div class="phase-badge night" id="phaseBadge">
+            <span id="phaseBadgeIcon">⚙️</span>
+            <span id="phaseLabel">ตั้งค่า</span>
+        </div>
+    </div>
+</header>
+
+<!-- CONTENT -->
+<div class="content">
+
+    <!-- ===== SETUP SCREEN ===== -->
+    <div class="screen active" id="screenSetup">
+        <div class="setup-title">ตั้งค่าผู้เล่น</div>
+        <div class="setup-sub">ใส่ชื่อและเลือกบทบาทให้ครบก่อนเริ่มเกม</div>
+
+        <div class="setup-panel">
+            <div class="input-row">
+                <input type="text" id="playerNameInput" placeholder="ชื่อผู้เล่น..." autocomplete="off">
+                <button class="btn btn-add" id="btnAddPlayer" onclick="addPlayer()">เพิ่ม</button>
+            </div>
+        </div>
+
+        <div class="setup-player-list" id="setupPlayerList">
+            <div class="empty-setup"><div class="icon">🐺</div>ยังไม่มีผู้เล่น<br>เพิ่มชื่อด้านบน</div>
+        </div>
+
+        <button class="btn-start-game" id="btnStartGame" disabled onclick="startGame()">
+            🌙 เริ่มเกม → เข้าคืนที่ 1
+        </button>
+    </div>
+
+    <!-- ===== GAME SCREEN ===== -->
+    <div class="screen" id="screenGame">
+        <div class="game-top-bar">
+            <button class="btn-to-setup" onclick="goToSetup()">⚙️ แก้ไขผู้เล่น</button>
+            <button class="btn-to-setup" onclick="resetGame()" style="color:var(--red);border-color:rgba(229,68,68,0.3);">↺ รีเซ็ตเกม</button>
+        </div>
+        <div class="alive-counter" id="aliveCounter"></div>
+        <div class="player-list" id="playerList"></div>
+    </div>
+
+</div>
+
+<!-- PHASE BAR (only in game) -->
+<div class="phase-bar" id="phaseBar" style="display:none;">
+    <div class="phase-bar-inner">
+        <button class="btn-next-phase btn-next-day" id="btnNextPhase" onclick="openSummary()">
+            <span id="nextPhaseIcon">☀️</span>
+            <span id="nextPhaseLabel">สรุปคืน → ขึ้นกลางวัน</span>
+        </button>
+    </div>
+</div>
+
+<!-- SUMMARY OVERLAY -->
+<div class="overlay" id="summaryOverlay">
+    <div class="sheet" id="summarySheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-title">สรุปรอบ</div>
+        <div class="sheet-sub" id="summarySubtitle"></div>
+        <div id="summaryContent"></div>
+        <div class="sheet-footer">
+            <button class="btn-confirm-next" id="btnConfirmNext" onclick="confirmNextPhase()"></button>
+            <button class="btn-sheet-cancel" onclick="closeSummary()">← กลับแก้ไข</button>
+        </div>
+    </div>
+</div>
+
+<!-- CONFIRM MODAL -->
+<div class="confirm-modal-overlay" id="confirmModal">
+    <div class="confirm-modal">
+        <div class="confirm-modal-icon" id="modalIcon">⚠️</div>
+        <div class="confirm-modal-title" id="modalTitle"></div>
+        <div class="confirm-modal-body" id="modalBody"></div>
+        <div class="confirm-modal-btns">
+            <button class="btn-modal-cancel" onclick="closeModal()">ยกเลิก</button>
+            <button class="btn-modal-confirm" id="btnModalConfirm" onclick="modalConfirmAction()">ยืนยัน</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ===== STATE =====
+let players = [];
+let phase = 'night';
+let nightCount = 1;
+let dayCount = 0;
+let pendingAction = null;
+
+const ROLES = [
+    "ยังไม่ระบุ","ชาวบ้าน","หมาป่า","ลูกหมาป่า","ผู้หยั่งรู้",
+    "การ์ด","นายพราน","ฆาตกร","ยายแก่(ใบ้)","คนบ้า"
+];
+
+// ===== INIT =====
+generateStars();
+document.getElementById('playerNameInput').addEventListener('keypress', e => {
+    if (e.key === 'Enter') addPlayer();
+});
+
+// ===== STARS =====
+function generateStars() {
+    const c = document.getElementById('stars');
+    for (let i = 0; i < 80; i++) {
+        const s = document.createElement('div');
+        s.className = 'star';
+        const sz = Math.random() * 2.5 + 0.5;
+        s.style.cssText = `width:${sz}px;height:${sz}px;left:${Math.random()*100}%;top:${Math.random()*100}%;--dur:${Math.random()*4+2}s;--delay:${Math.random()*5}s;--min-op:${(Math.random()*0.1+0.05).toFixed(2)};--max-op:${(Math.random()*0.5+0.3).toFixed(2)};`;
+        c.appendChild(s);
+    }
+}
+
+// ===== CONFIRM MODAL =====
+function showModal(icon, title, body, confirmLabel, confirmClass, onConfirm) {
+    document.getElementById('modalIcon').textContent = icon;
+    document.getElementById('modalTitle').textContent = title;
+    document.getElementById('modalBody').textContent = body;
+    const btn = document.getElementById('btnModalConfirm');
+    btn.textContent = confirmLabel;
+    btn.className = 'btn-modal-confirm' + (confirmClass ? ' '+confirmClass : '');
+    pendingAction = onConfirm;
+    document.getElementById('confirmModal').classList.add('visible');
+}
+function closeModal() {
+    document.getElementById('confirmModal').classList.remove('visible');
+    pendingAction = null;
+}
+function modalConfirmAction() {
+    const action = pendingAction;
+    closeModal();
+    if (action) action();
+}
+
+// ===== SETUP ACTIONS =====
+function addPlayer() {
+    const input = document.getElementById('playerNameInput');
+    const name = input.value.trim();
+    if (!name) return;
+    players.push({ id: Date.now(), name, role: 'ยังไม่ระบุ', isAlive: true, isProtected: false, isMuted: false, killedThisRound: false, mutedThisRound: false });
+    input.value = '';
+    renderSetup();
+}
+
+function deleteSetupPlayer(id) {
+    showModal('🗑️', 'ลบผู้เล่น', 'ต้องการลบผู้เล่นนี้ออกจากเกมใช่ไหม?', 'ลบออก', '', () => {
+        players = players.filter(p => p.id !== id);
+        renderSetup();
+    });
+}
+
+function updateSetupRole(id, role) {
+    const p = players.find(p => p.id === id);
+    if (p) p.role = role;
+    checkStartButton();
+}
+
+function checkStartButton() {
+    document.getElementById('btnStartGame').disabled = players.length < 2;
+}
+
+function startGame() {
+    phase = 'night';
+    nightCount = 1;
+    dayCount = 0;
+    players.forEach(p => {
+        p.isAlive = true; p.isProtected = false; p.isMuted = false;
+        p.killedThisRound = false; p.mutedThisRound = false;
+    });
+    switchScreen('game');
+}
+
+function goToSetup() {
+    showModal('⚙️', 'กลับหน้าตั้งค่า', 'สถานะเกมปัจจุบันจะยังถูกเก็บไว้\nสามารถกลับมาเล่นต่อได้', 'ไปหน้าตั้งค่า', 'gold', () => {
+        switchScreen('setup');
+    });
+}
+
+function resetGame() {
+    showModal('↺', 'รีเซ็ตเกม', 'ผู้เล่นทุกคนจะฟื้น บทบาทถูกล้าง และกลับไปคืนที่ 1', 'รีเซ็ตเลย', 'gold', () => {
+        players.forEach(p => {
+            p.role = 'ยังไม่ระบุ'; p.isAlive = true;
+            p.isProtected = false; p.isMuted = false;
+            p.killedThisRound = false; p.mutedThisRound = false;
+        });
+        phase = 'night'; nightCount = 1; dayCount = 0;
+        switchScreen('setup');
+    });
+}
+
+function switchScreen(name) {
+    document.getElementById('screenSetup').classList.toggle('active', name === 'setup');
+    document.getElementById('screenGame').classList.toggle('active', name === 'game');
+    document.getElementById('phaseBar').style.display = name === 'game' ? 'block' : 'none';
+    if (name === 'setup') {
+        renderSetup();
+        updateHeaderForSetup();
+    } else {
+        renderGame();
+        updateHeaderForGame();
+    }
+}
+
+// ===== RENDER SETUP =====
+function renderSetup() {
+    const list = document.getElementById('setupPlayerList');
+    if (players.length === 0) {
+        list.innerHTML = `<div class="empty-setup"><div class="icon">🐺</div>ยังไม่มีผู้เล่น<br>เพิ่มชื่อด้านบน</div>`;
+        checkStartButton(); return;
+    }
+    list.innerHTML = '';
+    players.forEach(p => {
+        const row = document.createElement('div');
+        row.className = 'setup-player-row';
+        let opts = ROLES.map(r => `<option value="${r}" ${p.role===r?'selected':''}>${r}</option>`).join('');
+        row.innerHTML = `
+            <span class="setup-player-name">${p.name}</span>
+            <select class="setup-role-select" onchange="updateSetupRole(${p.id}, this.value)">${opts}</select>
+            <button class="setup-btn-delete" onclick="deleteSetupPlayer(${p.id})">ลบ</button>
+        `;
+        list.appendChild(row);
+    });
+    checkStartButton();
+}
+
+// ===== HEADER =====
+function updateHeaderForSetup() {
+    document.body.classList.remove('day-phase');
+    const badge = document.getElementById('phaseBadge');
+    badge.className = 'phase-badge night';
+    document.getElementById('phaseBadgeIcon').textContent = '⚙️';
+    document.getElementById('phaseLabel').textContent = 'ตั้งค่า';
+}
+
+function updateHeaderForGame() {
+    const isNight = phase === 'night';
+    document.body.classList.toggle('day-phase', !isNight);
+    const badge = document.getElementById('phaseBadge');
+    badge.className = `phase-badge ${isNight ? 'night' : 'day'}`;
+    document.getElementById('phaseBadgeIcon').textContent = isNight ? '🌙' : '☀️';
+    document.getElementById('phaseLabel').textContent = isNight ? `คืนที่ ${nightCount}` : `วันที่ ${dayCount}`;
+}
+
+// ===== GAME ACTIONS =====
+function killPlayer(id) {
+    const p = players.find(p => p.id === id);
+    if (!p || !p.isAlive) return;
+    if (p.isProtected) {
+        p.isProtected = false;
+        if (navigator.vibrate) navigator.vibrate(200);
+        showModal('🛡️', `${p.name} รอดตาย!`, 'ได้รับการปกป้องจากการ์ด', 'ตกลง', '', null);
+        renderGame(); return;
+    }
+    p.isAlive = false; p.killedThisRound = true; p.isMuted = false;
+    if (navigator.vibrate) navigator.vibrate([80,40,80]);
+    renderGame();
+}
+
+function toggleProtect(id) {
+    const p = players.find(p => p.id === id);
+    if (p && p.isAlive) { p.isProtected = !p.isProtected; renderGame(); }
+}
+
+function toggleMute(id) {
+    const p = players.find(p => p.id === id);
+    if (p && p.isAlive) { p.isMuted = !p.isMuted; p.mutedThisRound = p.isMuted; renderGame(); }
+}
+
+// ===== RENDER GAME =====
+function renderGame() {
+    updateHeaderForGame();
+    updateAliveCounter();
+    renderPlayers();
+    updatePhaseBar();
+}
+
+function updateAliveCounter() {
+    const alive = players.filter(p => p.isAlive).length;
+    const total = players.length;
+    document.getElementById('aliveCounter').innerHTML =
+        total ? `ผู้รอดชีวิต: <span>${alive}</span> / ${total} คน` : '';
+}
+
+function updatePhaseBar() {
+    const isNight = phase === 'night';
+    const btn = document.getElementById('btnNextPhase');
+    btn.className = 'btn-next-phase ' + (isNight ? 'btn-next-day' : 'btn-next-night');
+    document.getElementById('nextPhaseIcon').textContent = isNight ? '☀️' : '🌙';
+    document.getElementById('nextPhaseLabel').textContent = isNight ? 'สรุปคืน → ขึ้นกลางวัน' : 'สรุปวัน → ขึ้นกลางคืน';
+}
+
+function renderPlayers() {
+    const list = document.getElementById('playerList');
+    list.innerHTML = '';
+
+    // เรียง: คนรอดก่อน → คนตายทีหลัง
+    const alive = players.filter(p => p.isAlive);
+    const dead  = players.filter(p => !p.isAlive);
+    const sorted = [...alive, ...dead];
+
+    sorted.forEach(p => {
+        const card = document.createElement('div');
+        let cls = ['player-card'];
+        if (!p.isAlive)                 cls.push('dead');
+        if (p.isProtected && p.isAlive) cls.push('is-protected');
+        if (p.isMuted && p.isAlive)     cls.push('is-muted');
+        card.className = cls.join(' ');
+
+        let tags = p.isAlive
+            ? `<span class="tag tag-alive">รอด</span>`
+            : `<span class="tag tag-dead">ตาย</span>`;
+        if (p.isMuted && p.isAlive)       tags += `<span class="tag tag-muted">โดนใบ้</span>`;
+        if (p.isProtected && p.isAlive)   tags += `<span class="tag tag-protected">การ์ด</span>`;
+
+        const roleDisplay = p.role && p.role !== 'ยังไม่ระบุ'
+            ? `<div class="role-label">บทบาท: <span>${p.role}</span></div>`
+            : `<div class="role-label" style="color:var(--muted-text)">ยังไม่ได้เลือกบทบาท</div>`;
+
+        const dis = !p.isAlive ? 'disabled' : '';
+        card.innerHTML = `
+            <div class="card-top">
+                <div class="player-name-block">
+                    <span class="player-name">${p.name}</span>
+                    ${tags}
+                </div>
+            </div>
+            ${roleDisplay}
+            <div class="action-row">
+                <button class="action-btn btn-kill" onclick="killPlayer(${p.id})" ${dis}>⚔️ ฆ่า</button>
+                <button class="action-btn btn-protect ${p.isProtected?'active':''}" onclick="toggleProtect(${p.id})" ${dis}>🛡️ การ์ด</button>
+                <button class="action-btn btn-mute ${p.isMuted?'active':''}" onclick="toggleMute(${p.id})" ${dis}>🤐 ใบ้</button>
+            </div>
+        `;
+        list.appendChild(card);
+    });
+}
+
+// ===== SUMMARY =====
+function openSummary() {
+    const isNight = phase === 'night';
+    const phaseLabel = isNight ? `คืนที่ ${nightCount}` : `วันที่ ${dayCount}`;
+    document.getElementById('summarySubtitle').textContent = `สรุปเหตุการณ์${phaseLabel}`;
+
+    const killed = players.filter(p => p.killedThisRound);
+    const muted  = players.filter(p => p.mutedThisRound && p.isAlive);
+
+    // เรียง survivors: รอดก่อน → ตายทีหลัง
+    const aliveSurvivors = players.filter(p => p.isAlive);
+    const deadPlayers    = players.filter(p => !p.isAlive && !p.killedThisRound);
+
+    let html = '';
+    if (killed.length > 0 || muted.length > 0) {
+        html += `<div class="summary-section"><div class="summary-section-title">เหตุการณ์รอบนี้</div><div class="event-list">`;
+        killed.forEach(p => {
+            html += `<div class="event-item event-killed">
+                <span class="event-icon">💀</span>
+                <div><div class="event-name">${p.name}</div>
+                <div class="event-desc">ถูกฆ่า${isNight?' (กลางคืน)':' (โหวตออก)'}</div></div></div>`;
+        });
+        muted.forEach(p => {
+            html += `<div class="event-item event-muted">
+                <span class="event-icon">🤐</span>
+                <div><div class="event-name">${p.name}</div>
+                <div class="event-desc">โดนใบ้ — ไม่สามารถพูดรอบถัดไป</div></div></div>`;
+        });
+        html += `</div></div>`;
+    } else {
+        html += `<div class="no-event">😮 ไม่มีเหตุการณ์พิเศษรอบนี้</div>`;
+    }
+
+    // ผู้รอดชีวิต (เรียง: รอดใหม่ก่อน → ตายก่อนหน้ามาทีหลัง)
+    if (aliveSurvivors.length > 0) {
+        html += `<div class="summary-section">
+            <div class="summary-section-title">ผู้รอดชีวิต (${aliveSurvivors.length} คน)</div>
+            <div class="survivor-grid">`;
+        aliveSurvivors.forEach(p => { html += `<div class="survivor-chip">✅ ${p.name}</div>`; });
+        html += `</div></div>`;
+    }
+
+    if (deadPlayers.length > 0) {
+        html += `<div class="summary-section">
+            <div class="summary-section-title">ผู้เสียชีวิตก่อนหน้า</div>
+            <div class="survivor-grid">`;
+        deadPlayers.forEach(p => {
+            html += `<div class="survivor-chip" style="background:rgba(100,116,139,0.1);border-color:rgba(100,116,139,0.2);color:#64748b;">💀 ${p.name}</div>`;
+        });
+        html += `</div></div>`;
+    }
+
+    document.getElementById('summaryContent').innerHTML = html;
+
+    const nextLabel = isNight ? '☀️ ดำเนินต่อ → กลางวัน' : '🌙 ดำเนินต่อ → กลางคืน';
+    const btn = document.getElementById('btnConfirmNext');
+    btn.textContent = nextLabel;
+    btn.className = 'btn-confirm-next' + (isNight ? ' to-day' : '');
+
+    document.getElementById('summaryOverlay').classList.add('visible');
+}
+
+function closeSummary() {
+    document.getElementById('summaryOverlay').classList.remove('visible');
+}
+
+function confirmNextPhase() {
+    const isNight = phase === 'night';
+    players.forEach(p => {
+        p.killedThisRound = false; p.mutedThisRound = false; p.isProtected = false;
+        if (!isNight) p.isMuted = false; // Day ends → clear mute
+    });
+    if (isNight) { phase = 'day'; dayCount = nightCount; }
+    else         { phase = 'night'; nightCount++; players.forEach(p => p.isMuted = false); }
+    closeSummary();
+    renderGame();
+}
+</script>
+</body>
+</html>
